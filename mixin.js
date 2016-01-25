@@ -21,18 +21,31 @@ function buildComps(context) {
     context._savedComputations.push(
       Tracker.nonreactive(() => {
         Tracker.autorun(() => {
-          let res = context.computations[name].apply(context)
-          if (Package.mongo && Package.mongo.Mongo && res instanceof Package.mongo.Mongo.Cursor) {
-            console.warn(`\
+          let res = context.computations[name].apply(context, (dataset) => new ReturnSet(dataset))
+          if (! (res instanceof ReturnSet)) {
+            res = new ReturnSet(res) // Inefficient, but fine for now
+          }
+
+          for (let key in res._dataset) {
+            if (Package.mongo && Package.mongo.Mongo && res instanceof Package.mongo.Mongo.Cursor) {
+              console.warn(`\
 Warning: you are returning a Mongo cursor from a computations function. \
 This value will not be reactive. You probably want to call '.fetch()' \
 on the cursor before returning it.`
-            )
+              )
+            }
           }
-          context.setState({[name]: res})
+
+          context.setState(res._dataset)
         })
       })
     )
+  }
+}
+
+class ReturnSet {
+  constructor(dataset) {
+    this._dataset = dataset
   }
 }
 
