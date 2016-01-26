@@ -3,25 +3,45 @@ ReactMeteorComputations = {
   componentWillMount() {
     this._setState = this.setState
     this.setState = function (partialState, callback) {
-      // TODO: catch calls to setState
-      if (typeof partialState === 'function') partialState = partialState()
+      if (typeof partialState === 'function') partialState = partialState(this.state, this.props)
+      if (typeof partialState !== 'object') {
+        // We'll let React throw the error
+        return this._setState(...arguments)
+      }
 
       for (let k in this._stateDependencies) {
         let d = this._stateDependencies[k]
         if (!d.cond || d.cond.apply(this, [partialState])) d.dep.changed()
       }
 
-      return this._setState(partialState, callback)
+      return callback ? this._setState(partialState, callback) : this._setState(partialState)
+    }
+
+    this._replaceState = this.replaceState
+    this.replaceState = function (nextState, callback) {
+      if (typeof nextState !== 'object') {
+        // We'll let React throw the error
+        return this._replaceState(...arguments)
+      }
+
+      for (let k in this._stateDependencies) {
+        let d = this._stateDependencies[k]
+        if (!d.cond || d.cond.apply(this, [nextState])) d.dep.changed()
+      }
+
+      return callback ? this._replaceState(nextState, callback) : this._replaceState(nextState)
     }
 
     this._forceUpdate = this.forceUpdate
     this.forceUpdate = function (callback) {
       for (let k in this._stateDependencies) {
-        this._stateDependencies[k].dep.changed()
+        let d = this._stateDependencies[k]
+        d.dep.changed()
       }
 
       for (let k in this._propDependencies) {
-        this._propDependencies[k].dep.changed()
+        let d = this._propDependencies[k]
+        d.dep.changed()
       }
 
       Tracker.flush() // This ensures 'setState's occur immediately
@@ -42,7 +62,14 @@ ReactMeteorComputations = {
       if (!d.cond || d.cond.apply(this, [nextProps])) d.dep.changed()
     }
 
-    Tracker.flush() // This ensures 'setState's occur immediately
+    let savedProps = this.props   // Save props
+    this.props = nextProps        // Set props to nextProps
+    Tracker.flush()               // This ensures 'setState's occur immediately
+    this.props = savedProps       // Restore props
+  },
+
+  componentDidUpdate() {
+    this._nextState = undefined
   },
 
   rerunAllComputations() {
@@ -63,8 +90,14 @@ function buildComps(context) {
     context._savedComputations.push(
       Tracker.nonreactive(() => (
         Tracker.autorun((c) => {
-          let setStateFunc = context.setState   // save setState
-          context.setState = function () {      // override setState
+          if (!context._nextState) {
+            // This gets the nextState so we aren't calling the computations with a "stale" state
+            context._nextState = context._reactInternalInstance._processPendingState(context.props, context.context)
+          }
+          let savedState = context.state        // Save state
+          context.state = context._nextState    // Set state to nextState
+          let setStateFunc = context.setState   // Save setState
+          context.setState = function () {      // Override setState
             console.error(`\
 You cannot call setState within a computation built by the ReactMeteorComputations mixin. \
 This is an anti-pattern and can create infinite loops.\
@@ -74,9 +107,10 @@ This is an anti-pattern and can create infinite loops.\
             new ReactDependency(c, context, name),
             (dataset) => new ReturnSet(dataset)
           ])
-          context.setState = setStateFunc       // restore setState
+          context.state = savedState            // Restore state
+          context.setState = setStateFunc       // Restore setState
           if (! (res instanceof ReturnSet)) {
-            res = new ReturnSet({[name]: res})  // Inefficient, but fine for now
+            res = new ReturnSet({[name]: res})
           }
 
           for (let key in res._dataset) {
