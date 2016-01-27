@@ -1,7 +1,5 @@
 ## ReactMeteorComputations
 
-###### Under construction...
-
 ### Introduction
 ReactMeteorComputations is [Meteor](https://github.com/meteor/meteor) package supplying
 a custom React mixin `ReactMeteorComputations` which enables Meteor reactivity (Tracker) in React.
