@@ -1,6 +1,6 @@
 Package.describe({
   name: 'react-meteor-computations',
-  version: '0.2.3',
+  version: '0.3.1',
   summary: 'The beauty of Meteor\'s Tracker brought to React, simply and efficiently in this tiny mixin.  A nice substitute for ReactMeteorData.',
   git: 'https://github.com/huttonr/react-meteor-computations',
   documentation: 'README.md'
