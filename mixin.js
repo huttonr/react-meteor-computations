@@ -3,11 +3,12 @@ ReactMeteorComputations = {
   componentWillMount() {
     let storage = this._reactMeteorComputations = {}
 
+    // Proxy setState
     this._setState = this.setState
     this.setState = function (partialState, callback) {
       if (typeof partialState === 'function') partialState = partialState(this.state, this.props)
       if (typeof partialState !== 'object') {
-        // We'll let React throw the error
+        // We'll let React throw the inevitable error
         return this._setState(...arguments)
       }
 
@@ -19,10 +20,11 @@ ReactMeteorComputations = {
       return callback ? this._setState(partialState, callback) : this._setState(partialState)
     }
 
+    // Proxy replaceState
     this._replaceState = this.replaceState
     this.replaceState = function (nextState, callback) {
       if (typeof nextState !== 'object') {
-        // We'll let React throw the error
+        // We'll let React throw the inevitable error
         return this._replaceState(...arguments)
       }
 
@@ -34,6 +36,7 @@ ReactMeteorComputations = {
       return callback ? this._replaceState(nextState, callback) : this._replaceState(nextState)
     }
 
+    // Proxy forceUpdate
     this._forceUpdate = this.forceUpdate
     this.forceUpdate = function (callback) {
       for (let k in storage._stateDependencies) {
@@ -72,16 +75,22 @@ ReactMeteorComputations = {
             let setStateFunc = this.setState   // Save setState
             this.setState = function () {      // Override setState
               console.error(`\
-  You cannot call setState within a computation built by the ReactMeteorComputations mixin. \
-  This is an anti-pattern and can create infinite loops.\
+You cannot call setState within a computation built by the ReactMeteorComputations mixin. \
+This is an anti-pattern and can create infinite loops.\
               `)
             }
+
+            let reactDep = new ReactDependency(c, this, name)
             let res = this.computations[name].apply(this, [
-              new ReactDependency(c, this, name),
+              reactDep,
               (dataset) => new ReturnSet(dataset)
             ])
+
             this.state = savedState            // Restore state
             this.setState = setStateFunc       // Restore setState
+
+            reactDep.ensureIsSetOrDefaultAll()
+
             if (! (res instanceof ReturnSet)) {
               res = new ReturnSet({[name]: res})
             }
@@ -89,9 +98,9 @@ ReactMeteorComputations = {
             for (let key in res._dataset) {
               if (Package.mongo && Package.mongo.Mongo && res instanceof Package.mongo.Mongo.Cursor) {
                 console.warn(`\
-  Warning: you are returning a Mongo cursor from a computations function. \
-  This value will not be reactive. You probably want to call '.fetch()' \
-  on the cursor before returning it.`
+Warning: you are returning a Mongo cursor from a computations function. \
+This value will not be reactive. You probably want to call '.fetch()' \
+on the cursor before returning it.`
                 )
               }
             }
@@ -150,9 +159,33 @@ class ReactDependency {
     this._computation = computation
     this._context = context
     this._name = name
+    this._isSet = false
+  }
+
+  ensureIsSetOrDefaultAll() {
+    if (!this._isSet) this.all()
+
+    return this
+  }
+
+  none() {
+    this._isSet = true
+
+    return this
+  }
+
+  all() {
+    this._isSet = true
+
+    this.props()
+    this.state()
+
+    return this
   }
 
   props(cond) {
+    this._isSet = true
+
     let propDeps = this._context._reactMeteorComputations._propDependencies
     if (this._computation.firstRun) { // Only interested in first run, don't want to rebuild every update
       let dep = new Tracker.Dependency
@@ -160,9 +193,13 @@ class ReactDependency {
     }
 
     this._context._reactMeteorComputations._propDependencies[this._name].dep.depend()
+
+    return this
   }
 
   state(cond) {
+    this._isSet = true
+
     let stateDeps = this._context._reactMeteorComputations._stateDependencies
     if (this._computation.firstRun) { // Only interested in first run, don't want to rebuild every update
       let dep = new Tracker.Dependency
@@ -170,6 +207,8 @@ class ReactDependency {
     }
 
     stateDeps[this._name].dep.depend()
+
+    return this
   }
 }
 
