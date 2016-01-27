@@ -53,5 +53,58 @@ TestMessage = React.createClass({
 })
 ```
 
-### Advanced Examples
-###### *Coming soon...*
+### Advanced Usage
+##### Returning multiple datapoints from one computation
+```jsx
+computations: {
+  _messages(dep, ret) {
+    let messages = Messages.find({user: this.props.user}, {sort: {date: 1}, limit: 100}).fetch()
+
+    let unreadMessageCount = 0
+    messages.forEach((doc) => {
+      if (doc.unread) unreadMessageCount++
+    })
+
+    return ret({
+      messages,
+      unreadMessageCount
+    })
+  }
+},
+
+...
+```
+
+##### Controlling reruns based on props or state changing
+```jsx
+computations: {
+  messages(dep, ret) {
+    dep.state((partialState) => (partialState.limit !== undefined)) // Think of this as a setState hook
+    dep.props((nextProps) => (this.props.date !== nextProps.date))  // Think of this as a willReceiveProps hook
+  
+    return Messages.find({date: this.props.date}, {limit: this.state.limit})
+  }
+},
+
+...
+```
+
+##### Subscriptions
+*An api to specifically address subscriptions will likely added in the future, but for now:*
+```jsx
+computations: {
+  _subscriptions(dep, ret) {
+    dep.state((partialState) => (partialState.limit !== undefined))
+    dep.props((nextProps) => (this.props.date !== nextProps.date))
+  
+    let sub = Meteor.subscribe('messagesByDate', this.props.date, this.state.limit)
+    let ready = sub.ready()
+    return ret({
+      ready: ready || this.state.ready || false,
+      loading: !ready
+    })
+  }
+},
+
+...
+```
