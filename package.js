@@ -1,5 +1,5 @@
 Package.describe({
-  name: 'react-meteor-computations',
+  name: 'huttonr:react-meteor-computations',
   version: '0.3.3',
   summary: 'A nice alternative to ReactMeteorData.',
   git: 'https://github.com/huttonr/react-meteor-computations',
