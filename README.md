@@ -9,7 +9,7 @@ a custom React mixin `ReactMeteorComputations` which enables Meteor reactivity (
 * The ReactMeteorData mixin forces all updates to reactive sources to update/rerender the component, completely bypassing `shouldComponentUpdate` making it impossible to increase update efficiency without creating individual wrapper components.
 * All reactive dependencies are put into a single computation which is rerun *in its entirety* any time any of the dependencies change, meaning if you have five fetches from five different Mongo collections, they will all re-fetch if a single one of them changes.
 * Any changes made to props or state causing a component update also force and update of all reactive dependencies with no way to individually specify which reactive sources to update based on the props/state change.
-* Data from the reactive sources are not placed into `this.state` but instead are placed into `this.data` which, although is a proposed and possibly future React design, does not feel the same as having the data in state (with the rest of your state) where a React component would ordinarly store it.
+* Data from the reactive sources are not placed into `this.state` but instead are placed into `this.data` which, although is a proposed and possible future React design, does not feel the same as having the data in state (with the rest of your state) where a React component would ordinarily store it.
 
 **ReactMeteorComputations seeks to address these issues in following manner:**
 
