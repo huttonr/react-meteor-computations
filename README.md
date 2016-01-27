@@ -108,3 +108,6 @@ computations: {
 
 ...
 ```
+
+#### Full API
+*Coming soon...*
