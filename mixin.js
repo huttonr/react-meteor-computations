@@ -49,7 +49,9 @@ ReactMeteorComputations = {
         d.dep.changed()
       }
 
-      Tracker.flush() // This ensures 'setState's occur immediately
+      try {
+        Tracker.flush() // This ensures 'setState's occur immediately
+      } catch(e) {}
 
       return this._forceUpdate(...arguments)
     }
@@ -133,7 +135,9 @@ on the cursor before returning it.`
 
     let savedProps = this.props   // Save props
     this.props = nextProps        // Set props to nextProps
-    Tracker.flush()               // This ensures 'setState's occur immediately
+    try {
+      Tracker.flush()             // This ensures 'setState's occur immediately
+    } catch(e) {}
     this.props = savedProps       // Restore props
   },
 
