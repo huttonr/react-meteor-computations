@@ -70,7 +70,17 @@ ReactMeteorComputations = {
           Tracker.autorun((c) => {
             if (!storage._nextState) {
               // This gets the nextState so we aren't calling the computations with a "stale" state
-              storage._nextState = this._reactInternalInstance._processPendingState(this.props, this.context)
+              // it also flattens the state queue which will make it more efficient later anyway
+              let internal = this._reactInternalInstance
+
+              if (internal._pendingStateQueue) {
+                let nextState = internal._processPendingState(this.props, this.context)
+                internal._pendingStateQueue = [nextState]
+                storage._nextState = Object.assign({}, nextState)
+              } else {
+                // Looks like no new state except possibly states created by this mixin, so skip it
+                storage._nextState = this.state
+              }
             }
             let savedState = this.state        // Save state
             this.state = storage._nextState    // Set state to nextState
