@@ -3,7 +3,7 @@ Package.describe({
   version: '0.3.3',
   summary: 'A nice alternative to ReactMeteorData.',
   git: 'https://github.com/huttonr/react-meteor-computations',
-  documentation: 'README.md'
+  documentation: null // README was giving troubles
 });
 
 Package.onUse(function(api) {
