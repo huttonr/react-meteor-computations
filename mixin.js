@@ -72,7 +72,6 @@ ReactMeteorComputations = {
               // This gets the nextState so we aren't calling the computations with a "stale" state
               // it also flattens the state queue which will make it more efficient later anyway
               let internal = this._reactInternalInstance
-
               if (internal._pendingStateQueue) {
                 let nextState = internal._processPendingState(this.props, this.context)
                 internal._pendingStateQueue = [nextState]
